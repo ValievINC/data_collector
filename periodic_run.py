@@ -29,7 +29,6 @@ def log(*args, **kwargs):
 def get_time_to_wait():
     DATE_RE = r"\d\d\d\d-\d\d-\d\d"
     prev_dirs = [d for d in os.listdir() if re.fullmatch(DATE_RE, d, re.ASCII)]
-    log(prev_dirs)
     for prev_dir in sorted(prev_dirs, reverse=True):
         dir_date = datetime.datetime.strptime(prev_dir, "%Y-%m-%d")
 
@@ -80,7 +79,7 @@ def loop():
                 time.sleep(RECHECK_EVERY_SEC)
             else:
                 log(f"Next run in {int(wait_time)} secs")
-                wait_time = min(wait_time, RECHECK_EVERY_SEC)
+                wait_time = max(wait_time, RECHECK_EVERY_SEC)
                 time.sleep(wait_time)
         except Exception:
             log(traceback.format_exc())
