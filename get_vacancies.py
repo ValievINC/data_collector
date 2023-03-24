@@ -17,8 +17,10 @@ MAX_DAYS_FWD = 5
 
 ATTEMPTS = 1
 
+professional_roles = []
+
 RETRY_STRATEGY = requests.packages.urllib3.util.retry.Retry(
-    total=10,
+    total=100,
     status_forcelist=[429, 500, 502, 503, 504],
     method_whitelist=["HEAD", "GET", "OPTIONS"]
 )
@@ -34,7 +36,7 @@ def log(*args, **kwargs):
     print(timestamp, *args, **kwargs, file=sys.stderr, flush=True)
 
 
-def get_hh_vacancies(specialization="1", date_from:int=None, date_to:int=None, page=0):
+def get_hh_vacancies(professinal_role=96, date_from:int=None, date_to:int=None, page=0):
     """Generator of vacancies, can return repeating ones due to api restrictions"""
 
     global session
@@ -46,7 +48,7 @@ def get_hh_vacancies(specialization="1", date_from:int=None, date_to:int=None, p
         return
 
     params = {
-        "specialization": specialization,
+        "professional_role": [156, 160, 10, 12, 150, 25, 165, 34, 36, 73, 155, 96, 164, 104, 157, 107, 112, 113, 148, 114, 116, 121, 124, 125, 126],
         "per_page": 100,
         "page": page
     }
@@ -56,7 +58,7 @@ def get_hh_vacancies(specialization="1", date_from:int=None, date_to:int=None, p
     if date_to:
         params["date_to"] = datetime.fromtimestamp(int(date_to)).isoformat()
 
-    result = session.get(VACANCIES_URL, params=params).json()
+    result = session.get(VACANCIES_URL, params=params, proxies={'http': 'http://52.23.86.225:80', 'https': 'http://52.23.86.225:80'}).json()
 
     if result["pages"] * result["per_page"] < result["found"]:
         SECONDS_IN_DAY = 60*60*24
@@ -66,17 +68,17 @@ def get_hh_vacancies(specialization="1", date_from:int=None, date_to:int=None, p
             date_to = time.time() - MAX_DAYS_FWD * SECONDS_IN_DAY
         date_middle = (date_from + date_to) / 2
 
-        yield from get_hh_vacancies(specialization, date_from, date_middle)
-        yield from get_hh_vacancies(specialization, date_middle, date_to)
+        yield from get_hh_vacancies(professinal_role, date_from, date_middle)
+        yield from get_hh_vacancies(professinal_role, date_middle, date_to)
         return
 
     yield from result["items"]
 
     if (page+1) < result["pages"]:
-        yield from get_hh_vacancies(specialization, date_from, date_to, page+1)
+        yield from get_hh_vacancies(professinal_role, date_from, date_to, page+1)
 
 
-def gen_all_hh_vacancy_ids(specialization="1"):
+def gen_all_hh_vacancy_ids(professinal_role=96):
     used = set()
     for vacancy in get_hh_vacancies():
         if vacancy["id"] not in used:
@@ -94,7 +96,7 @@ COLUMN_NAMES = [
     'accept_kids',
     'experience_id',
     'experience_name',
-    'specializations',
+    'professional_roles',
     'contacts',
     'billing_type_id',
     'billing_type_name',
@@ -163,9 +165,6 @@ def get_employer_industries(employer_id=None):
 def add_hh_vacancy_to_csv(vacancy: dict, writer):
     employer_industries = get_employer_industries(vacancy['employer'].get('id'))
 
-    specializations = (f"{s['id']} {s['name']} {s['profarea_id']} {s['profarea_name']}"
-                     for s in vacancy["specializations"])
-
     contacts = []
     if vacancy['contacts'] != None:
         if vacancy['contacts']['name']:
@@ -185,7 +184,7 @@ def add_hh_vacancy_to_csv(vacancy: dict, writer):
         'accept_kids': vacancy['accept_kids'],
         'experience_id': vacancy['experience']['id'] if vacancy['experience'] else None,
         'experience_name': vacancy['experience']['name'] if vacancy['experience'] else None,
-        'specializations': "\n".join(specializations),
+        'professional_roles': vacancy['professional_roles'][0]['name'],
         'contacts': "\n".join(contacts),
         'billing_type_id': vacancy['billing_type']['id'] if vacancy['billing_type'] else None,
         'billing_type_name': vacancy['billing_type']['name'] if vacancy['billing_type'] else None,
@@ -247,7 +246,7 @@ with open('result.csv', 'w', newline='') as csv_file:
                         captcha_url = (err_code['errors'][0]['captcha_url'])
                         url = captcha_url + '&backurl=' + 'https://it-professions.ru/professions/it-specialist/'
                         log(url)
-                        time.sleep(4850)
+                        time.sleep(60)
                     else:
                         log(f"Failed to get {vacancy_id}, skipping")
                         continue
