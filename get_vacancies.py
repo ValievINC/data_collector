@@ -58,7 +58,7 @@ def get_hh_vacancies(professinal_role=96, date_from:int=None, date_to:int=None, 
     if date_to:
         params["date_to"] = datetime.fromtimestamp(int(date_to)).isoformat()
 
-    result = session.get(VACANCIES_URL, params=params, proxies={'http': 'http://52.23.86.225:80', 'https': 'http://52.23.86.225:80'}).json()
+    result = session.get(VACANCIES_URL, params=params).json()
 
     if result["pages"] * result["per_page"] < result["found"]:
         SECONDS_IN_DAY = 60*60*24
