@@ -246,7 +246,7 @@ with open('result.csv', 'w', newline='') as csv_file:
                         captcha_url = (err_code['errors'][0]['captcha_url'])
                         url = captcha_url + '&backurl=' + 'https://it-professions.ru/professions/it-specialist/'
                         log(url)
-                        time.sleep(60)
+                        time.sleep(4850)
                     else:
                         log(f"Failed to get {vacancy_id}, skipping")
                         continue
